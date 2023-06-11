@@ -2814,9 +2814,9 @@ justReRender:
 
 				// May need to create NoteRow if there wasn't one previously
 				if (!modelStackWithNoteRowOnCurrentClip->getNoteRowAllowNull()) {
-					if (!drum) {//
+					//if (!drum) {//
 						modelStackWithNoteRowOnCurrentClip =createNoteRowForYDisplay(modelStackWithTimelineCounter, yDisplay);
-					}
+					//}
 				}
 
 				if (modelStackWithNoteRowOnCurrentClip->getNoteRowAllowNull()) {

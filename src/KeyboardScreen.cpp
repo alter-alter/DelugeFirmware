@@ -362,6 +362,21 @@ int KeyboardScreen::buttonAction(int x, int y, bool on, bool inCardRoutine) {
 		}
 	}
 
+
+	/*else if (x == affectEntireButtonX && y == affectEntireButtonY) {//
+		//if (on && currentUIMode == UI_MODE_NONE) {
+			//if (getCurrentClip()->output->type == INSTRUMENT_TYPE_KIT) {
+				//if (inCardRoutine) return ACTION_RESULT_REMIND_ME_OUTSIDE_CARD_ROUTINE;
+
+				//getCurrentClip()->affectEntire = !getCurrentClip()->affectEntire;
+				//view.setActiveModControllableTimelineCounter(getCurrentClip());
+				//view.setModLedStates();
+				return view.buttonAction(x, y, on, false);
+			//}
+		//}
+	}*/
+
+
 	// Song view button
 	else if (x == sessionViewButtonX && y == sessionViewButtonY) {
 		if (on && currentUIMode == UI_MODE_NONE) {
