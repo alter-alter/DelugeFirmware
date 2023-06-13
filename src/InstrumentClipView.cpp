@@ -3980,7 +3980,11 @@ void InstrumentClipView::quantizeNotes(int offset) {
 		//intToString(0, buffer + strlen(buffer));
 		char const* message;
 		message = buffer;
+#if HAVE_OLED
 		OLED::popupText(message);
+#else
+		numericDriver.displayPopup(message, 0, false);
+#endif
 
 		return;
 	}
@@ -4022,14 +4026,19 @@ void InstrumentClipView::quantizeNotes(int offset) {
 	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount<0){
 		strcpy(buffer, "HA");
 	}
-	if( abs(quantizeAmount)==10 )intToString(99, buffer + strlen(buffer))
-	else intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
+	if( abs(quantizeAmount)==10 ){intToString(99, buffer + strlen(buffer));}
+	else {intToString( abs(quantizeAmount*10), buffer + strlen(buffer));}
 #endif
 
 	//intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
 	char const* message;
 	message = buffer;
+
+#if HAVE_OLED
 	OLED::popupText(message);
+#else
+	numericDriver.displayPopup(message, 0, false);
+#endif
 	////
 
 
