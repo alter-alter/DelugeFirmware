@@ -543,7 +543,7 @@ doOther:
 	else if (x == xEncButtonX && y == xEncButtonY) {
 
 		// If user wants to "multiple" Clip contents
-		if (on && Buttons::isShiftButtonPressed()) {
+		if (on && Buttons::isShiftButtonPressed() && !isUIModeActiveExclusively(UI_MODE_NOTES_PRESSED) ) {
 			if (isNoUIModeActive()) {
 				if (inCardRoutine) return ACTION_RESULT_REMIND_ME_OUTSIDE_CARD_ROUTINE;
 
@@ -564,7 +564,16 @@ doOther:
 		else {
 			if (isUIModeActiveExclusively(UI_MODE_NOTES_PRESSED)) {
 				if (on) {
-					nudgeNotes(0);
+					if ( Buttons::isShiftButtonPressed()) {
+						nudgeMode=(nudgeMode+1)%3;
+					}
+					//uiTimerManager.setTimer(TIMER_UI_SPECIFIC, 1000);//xEncButtonX
+					if(nudgeMode==NUDGEMODE_NUDGE){
+						nudgeNotes(0);
+					}else if (nudgeMode==NUDGEMODE_QUANTIZE || nudgeMode==NUDGEMODE_QUANTIZE_ALL ){
+						quantizeNotes(0);
+					}
+
 				}
 				else {
 doCancelPopup:
@@ -3752,7 +3761,12 @@ int InstrumentClipView::horizontalEncoderAction(int offset) {
 			         && isUIModeWithinRange(noteNudgeUIModes)) {
 				if (sdRoutineLock)
 					return ACTION_RESULT_REMIND_ME_OUTSIDE_CARD_ROUTINE; // Just be safe - maybe not necessary
-				nudgeNotes(offset);
+
+				if(nudgeMode==NUDGEMODE_NUDGE){
+					nudgeNotes(offset);
+				}else if (nudgeMode==NUDGEMODE_QUANTIZE || nudgeMode==NUDGEMODE_QUANTIZE_ALL ){
+					quantizeNotes(offset);
+				}
 			}
 		}
 		return ACTION_RESULT_DEALT_WITH;
@@ -3932,6 +3946,294 @@ void InstrumentClipView::editNoteRepeat(int offset) {
 	numericDriver.displayPopup(buffer, 0, true);
 #endif
 }
+
+
+// quantizeNotes
+void InstrumentClipView::quantizeNotes(int offset) {
+
+	shouldIgnoreHorizontalScrollKnobActionIfNotAlsoPressedForThisNotePress = true;
+
+
+
+	// If just popping up number,
+	if (!offset ) {
+		//store totaloffset before quantizing.
+		quantizeAmount=0;
+
+#if HAVE_OLED
+		char buffer[24];
+		if(nudgeMode==NUDGEMODE_QUANTIZE){
+			strcpy(buffer, "QUANTIZE");
+		}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL){
+			strcpy(buffer, "QUANTIZE ALL ROWS");
+		}
+#else
+		char buffer[5];
+		if(nudgeMode==NUDGEMODE_QUANTIZE){
+			strcpy(buffer, "QTZ");
+		}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL){
+			strcpy(buffer, "QTZA");
+		}
+#endif
+
+
+		//intToString(0, buffer + strlen(buffer));
+		char const* message;
+		message = buffer;
+		OLED::popupText(message);
+
+		return;
+	}
+	int squareSize = getPosFromSquare(1) - getPosFromSquare(0);
+	int halfsquareSize =  (int)(squareSize/2);
+	int quatersquareSize =  (int)(squareSize/4);
+
+
+
+	/////
+	if(quantizeAmount==10 && offset==1)return;
+	if(quantizeAmount==-10 && offset==-1)return;
+	quantizeAmount+=offset;
+	if(quantizeAmount>=10)quantizeAmount=10;
+	if(quantizeAmount<=-10)quantizeAmount=-10;
+
+
+
+#if HAVE_OLED
+	char buffer[24];
+	if(nudgeMode==NUDGEMODE_QUANTIZE && quantizeAmount>=0){
+		strcpy(buffer, "Quantize ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount>=0){
+		strcpy(buffer, "Quantize All ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE  && quantizeAmount<0){
+		strcpy(buffer, "Humanaize ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount<0){
+		strcpy(buffer, "Humanaize All ");
+	}
+	intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
+#else
+	char buffer[5];
+	if(nudgeMode==NUDGEMODE_QUANTIZE && quantizeAmount>=0){
+		strcpy(buffer, "Q ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount>=0){
+		strcpy(buffer, "QA");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE  && quantizeAmount<0){
+		strcpy(buffer, "H ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount<0){
+		strcpy(buffer, "HA");
+	}
+	if( abs(quantizeAmount)==10 )intToString(99, buffer + strlen(buffer))
+	else intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
+#endif
+
+	//intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
+	char const* message;
+	message = buffer;
+	OLED::popupText(message);
+	////
+
+
+
+
+
+	char modelStackMemory[MODEL_STACK_MAX_SIZE];
+	ModelStack* modelStack = setupModelStackWithSong(modelStackMemory, currentSong);
+	ModelStackWithTimelineCounter* modelStackWithTimelineCounter = modelStack->addTimelineCounter(modelStack->song->currentClip);
+	InstrumentClip* currentClip = getCurrentClip();
+
+	if ( nudgeMode==NUDGEMODE_QUANTIZE /*currentSong->currentClip->output->type == INSTRUMENT_TYPE_KIT*/) {//kit, one row
+
+
+		//reset
+		Action* lastAction = actionLogger.firstAction[BEFORE];
+		if(lastAction &&  lastAction->type == ACTION_NOTE_NUDGE && lastAction->openForAdditions)actionLogger.undoJustOneConsequencePerNoteRow(modelStack);
+
+
+
+		Action* action = NULL;
+		if (offset) {
+			action = actionLogger.getNewAction(ACTION_NOTE_NUDGE, ACTION_ADDITION_ALLOWED);
+			if (action) action->offset = quantizeAmount;
+		}
+
+		NoteRow* thisNoteRow;
+		int noteRowId;
+		for (int i = 0; i < editPadPressBufferSize; i++) {
+			if (editPadPresses[i].isActive) {
+
+				int noteRowIndex;
+				thisNoteRow = currentClip->getNoteRowOnScreen(editPadPresses[i].yDisplay, currentSong, &noteRowIndex);
+				noteRowId = currentClip->getNoteRowId(thisNoteRow, noteRowIndex);
+
+				ModelStackWithNoteRow* modelStackWithNoteRow =
+				    modelStackWithTimelineCounter->addNoteRow(noteRowId, thisNoteRow);
+
+				int32_t noteRowEffectiveLength = modelStackWithNoteRow->getLoopLength();
+
+
+				if (offset) {//store
+					action->recordNoteArrayChangeDefinitely((InstrumentClip*)modelStackWithNoteRow->getTimelineCounter(),
+							modelStackWithNoteRow->noteRowId, &(thisNoteRow->notes), false);
+				}
+
+				for (int j = 0; j < thisNoteRow->notes.getNumElements(); j++) {
+
+					Note* note=thisNoteRow->notes.getElement(j);
+
+					int32_t destination=(trunc((note->pos-1 + halfsquareSize)/squareSize))* squareSize ;
+					if(quantizeAmount<0){//humanaize
+						int32_t mhAmout= trunc(  random(quatersquareSize)-(quatersquareSize/2.5) );
+						destination=  note->pos + mhAmout;
+					}
+					int32_t distance=destination - note->pos;
+					distance=trunc((distance*abs(quantizeAmount))/10);
+
+					if(distance!=0){
+						//note->pos=note->pos+distance;
+						int32_t newPos=note->pos+distance;
+						if(newPos<0){
+							newPos=0;//newPos+noteRowEffectiveLength;
+							note->pos=newPos;
+						}else{
+							//newPos=newPos%noteRowEffectiveLength;
+							if(newPos>=noteRowEffectiveLength){
+								newPos=noteRowEffectiveLength-1;
+								note->pos=newPos;
+								thisNoteRow->nudgeNotesAcrossAllScreens(note->pos, modelStackWithNoteRow,
+										NULL, MAX_SEQUENCE_LENGTH, 1);
+							}else{
+								note->pos=newPos;
+							}
+						}
+
+					}
+
+				}
+				//check duplicate over-wrap;
+				for (int j =0; j < thisNoteRow->notes.getNumElements()-1 ; j++) {
+					if(thisNoteRow->notes.getElement(j)->pos==thisNoteRow->notes.getElement(j+1)->pos){
+						thisNoteRow->notes.deleteAtIndex(j+1);
+					}
+				}
+
+				for (int j =0; j < thisNoteRow->notes.getNumElements() ; j++) {
+					Note* note=thisNoteRow->notes.getElement(j);
+					int distance=thisNoteRow->getDistanceToNextNote( note->pos, modelStackWithNoteRow);
+					if(note->length >=0 &&  distance>=0 && note->length >= distance )note->length=distance-1;
+				}
+
+
+
+			}
+		}
+
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL ){//synth, all row
+
+		//reset
+		Action* lastAction = actionLogger.firstAction[BEFORE];
+		if(lastAction &&  lastAction->type == ACTION_NOTE_NUDGE && lastAction->openForAdditions)actionLogger.undoJustOneConsequencePerNoteRow(modelStack);
+
+
+
+		Action* action = NULL;
+		if (offset) {
+			action = actionLogger.getNewAction(ACTION_NOTE_NUDGE, ACTION_ADDITION_ALLOWED);
+			if (action) action->offset = offset;
+		}
+
+
+		for (int i = 0; i < getCurrentClip()->noteRows.getNumElements(); i++) {
+			NoteRow* thisNoteRow = getCurrentClip()->noteRows.getElement(i);
+
+			int noteRowId;
+			int noteRowIndex;
+			//noteRow = currentClip->getNoteRowOnScreen(editPadPresses[i].yDisplay, currentSong, &noteRowIndex);
+			noteRowId = getCurrentClip()->getNoteRowId(thisNoteRow, i);
+
+			ModelStackWithNoteRow* modelStackWithNoteRow =  modelStackWithTimelineCounter->addNoteRow(noteRowId, thisNoteRow);
+			int32_t noteRowEffectiveLength = modelStackWithNoteRow->getLoopLength();
+
+
+			// If this NoteRow has any notes...
+			if (!thisNoteRow->hasNoNotes()) {
+
+
+				if (offset) {//store
+					action->recordNoteArrayChangeDefinitely((InstrumentClip*)modelStackWithNoteRow->getTimelineCounter(),
+							modelStackWithNoteRow->noteRowId, &(thisNoteRow->notes), false);
+				}
+
+				for (int j = 0; j < thisNoteRow->notes.getNumElements(); j++) {
+					Note* note=thisNoteRow->notes.getElement(j);
+
+					int32_t destination=(trunc((note->pos-1 + halfsquareSize)/squareSize))* squareSize ;
+					if(quantizeAmount<0){//humanaize
+						int32_t mhAmout= trunc(  random(quatersquareSize)-(quatersquareSize/2.5) );
+						destination=  note->pos + mhAmout;
+						//if(destination<0)destination=0;
+					}
+					int32_t distance=destination - note->pos;
+					distance=trunc((distance*abs(quantizeAmount))/10);
+
+					if(distance!=0){
+						//note->pos=note->pos+distance;
+						int32_t newPos=note->pos+distance;
+						if(newPos<0){
+							newPos=0;//newPos+noteRowEffectiveLength;
+							note->pos=newPos;
+						}else{
+							//newPos=newPos%noteRowEffectiveLength;
+							if(newPos>=noteRowEffectiveLength){
+								newPos=noteRowEffectiveLength-1;
+								note->pos=newPos;
+								thisNoteRow->nudgeNotesAcrossAllScreens(note->pos, modelStackWithNoteRow,
+										NULL, MAX_SEQUENCE_LENGTH, 1);
+							}else{
+								note->pos=newPos;
+							}
+						}
+
+					}
+
+
+				}
+				// check duplicate over-wrap;
+				for (int j =0; j < thisNoteRow->notes.getNumElements()-1 ; j++) {
+					if(thisNoteRow->notes.getElement(j)->pos==thisNoteRow->notes.getElement(j+1)->pos){
+						thisNoteRow->notes.deleteAtIndex(j+1);
+					}
+				}
+
+				for (int j =0; j < thisNoteRow->notes.getNumElements() ; j++) {
+					Note* note=thisNoteRow->notes.getElement(j);
+					int distance=thisNoteRow->getDistanceToNextNote( note->pos, modelStackWithNoteRow);
+					if(note->length >=0 &&  distance>=0 && note->length >= distance )note->length=distance-1;
+				}
+			}
+		}//for i
+
+	}//kit/synth
+
+
+
+
+	uiNeedsRendering(this, 0xFFFFFFFF, 0);
+	{
+
+		if (playbackHandler.isEitherClockActive() && modelStackWithTimelineCounter->song->isClipActive(currentClip)) {
+			currentClip->expectEvent();
+			currentClip->reGetParameterAutomation(modelStackWithTimelineCounter);
+		}
+	}
+	return;
+
+}
+
+
+
+
+
+
 
 // Supply offset as 0 to just popup number, not change anything
 void InstrumentClipView::nudgeNotes(int offset) {
