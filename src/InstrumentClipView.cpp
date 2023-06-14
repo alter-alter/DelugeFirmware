@@ -4085,9 +4085,10 @@ void InstrumentClipView::quantizeNotes(int offset) {
 							modelStackWithNoteRow->noteRowId, &(thisNoteRow->notes), false);
 				}
 
-				for (int j = 0; j < thisNoteRow->notes.getNumElements(); j++) {
+				NoteVector tmpNotes; tmpNotes.cloneFrom(&thisNoteRow->notes);//backup
+				for (int j = 0; j < tmpNotes.getNumElements(); j++) {
 
-					Note* note=thisNoteRow->notes.getElement(j);
+					Note* note=tmpNotes.getElement(j);
 
 					int32_t destination=(trunc((note->pos-1 + halfsquareSize)/squareSize))* squareSize ;
 					if(quantizeAmount<0){//humanaize
@@ -4098,40 +4099,17 @@ void InstrumentClipView::quantizeNotes(int offset) {
 					distance=trunc((distance*abs(quantizeAmount))/10);
 
 					if(distance!=0){
-						//note->pos=note->pos+distance;
-						int32_t newPos=note->pos+distance;
-						if(newPos<0){
-							newPos=0;//newPos+noteRowEffectiveLength;
-							note->pos=newPos;
-						}else{
-							//newPos=newPos%noteRowEffectiveLength;
-							if(newPos>=noteRowEffectiveLength){
-								newPos=noteRowEffectiveLength-1;
-								note->pos=newPos;
-								thisNoteRow->nudgeNotesAcrossAllScreens(note->pos, modelStackWithNoteRow,
-										NULL, MAX_SEQUENCE_LENGTH, 1);
-							}else{
-								note->pos=newPos;
-							}
+
+						for(int k=0;k<abs(distance);k++){
+							int32_t nowPos=(note->pos+ ((distance>0)?k:-k)   +noteRowEffectiveLength)%noteRowEffectiveLength;
+							int error=thisNoteRow->nudgeNotesAcrossAllScreens(nowPos, modelStackWithNoteRow,
+																	NULL, MAX_SEQUENCE_LENGTH,  ((distance>0)?1:-1)  );
+							if (error) {numericDriver.displayError(error);return;}
 						}
 
 					}
 
 				}
-				//check duplicate over-wrap;
-				for (int j =0; j < thisNoteRow->notes.getNumElements()-1 ; j++) {
-					if(thisNoteRow->notes.getElement(j)->pos==thisNoteRow->notes.getElement(j+1)->pos){
-						thisNoteRow->notes.deleteAtIndex(j+1);
-					}
-				}
-
-				for (int j =0; j < thisNoteRow->notes.getNumElements() ; j++) {
-					Note* note=thisNoteRow->notes.getElement(j);
-					int distance=thisNoteRow->getDistanceToNextNote( note->pos, modelStackWithNoteRow);
-					if(note->length >=0 &&  distance>=0 && note->length >= distance )note->length=distance-1;
-				}
-
-
 
 			}
 		}
@@ -4172,52 +4150,32 @@ void InstrumentClipView::quantizeNotes(int offset) {
 							modelStackWithNoteRow->noteRowId, &(thisNoteRow->notes), false);
 				}
 
-				for (int j = 0; j < thisNoteRow->notes.getNumElements(); j++) {
-					Note* note=thisNoteRow->notes.getElement(j);
+				NoteVector tmpNotes; tmpNotes.cloneFrom(&thisNoteRow->notes);//backup
+				for (int j = 0; j < tmpNotes.getNumElements(); j++) {
+					Note* note=tmpNotes.getElement(j);
 
 					int32_t destination=(trunc((note->pos-1 + halfsquareSize)/squareSize))* squareSize ;
 					if(quantizeAmount<0){//humanaize
 						int32_t mhAmout= trunc(  random(quatersquareSize)-(quatersquareSize/2.5) );
 						destination=  note->pos + mhAmout;
-						//if(destination<0)destination=0;
 					}
 					int32_t distance=destination - note->pos;
 					distance=trunc((distance*abs(quantizeAmount))/10);
 
 					if(distance!=0){
-						//note->pos=note->pos+distance;
-						int32_t newPos=note->pos+distance;
-						if(newPos<0){
-							newPos=0;//newPos+noteRowEffectiveLength;
-							note->pos=newPos;
-						}else{
-							//newPos=newPos%noteRowEffectiveLength;
-							if(newPos>=noteRowEffectiveLength){
-								newPos=noteRowEffectiveLength-1;
-								note->pos=newPos;
-								thisNoteRow->nudgeNotesAcrossAllScreens(note->pos, modelStackWithNoteRow,
-										NULL, MAX_SEQUENCE_LENGTH, 1);
-							}else{
-								note->pos=newPos;
-							}
+
+						for(int k=0;k<abs(distance);k++){
+							int32_t nowPos=(note->pos+ ((distance>0)?k:-k)   +noteRowEffectiveLength)%noteRowEffectiveLength;
+							int error=thisNoteRow->nudgeNotesAcrossAllScreens(nowPos, modelStackWithNoteRow,
+																	NULL, MAX_SEQUENCE_LENGTH,  ((distance>0)?1:-1)  );
+							if (error) {numericDriver.displayError(error);return;}
 						}
 
 					}
 
 
 				}
-				// check duplicate over-wrap;
-				for (int j =0; j < thisNoteRow->notes.getNumElements()-1 ; j++) {
-					if(thisNoteRow->notes.getElement(j)->pos==thisNoteRow->notes.getElement(j+1)->pos){
-						thisNoteRow->notes.deleteAtIndex(j+1);
-					}
-				}
 
-				for (int j =0; j < thisNoteRow->notes.getNumElements() ; j++) {
-					Note* note=thisNoteRow->notes.getElement(j);
-					int distance=thisNoteRow->getDistanceToNextNote( note->pos, modelStackWithNoteRow);
-					if(note->length >=0 &&  distance>=0 && note->length >= distance )note->length=distance-1;
-				}
 			}
 		}//for i
 
