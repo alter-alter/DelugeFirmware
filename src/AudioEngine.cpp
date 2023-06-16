@@ -47,6 +47,7 @@
 #include "voice.h"
 #include "revmodel.hpp"
 #include "Metronome.h"
+#include "MasterCompressor.h"
 #include "VoiceVector.h"
 #include "definitions.h"
 #include "uart.h"
@@ -107,6 +108,7 @@ uint32_t timeLastSideChainHit = 2147483648;
 int32_t sizeLastSideChainHit;
 
 Metronome metronome;
+MasterCompressor mastercompressor;
 
 SoundDrum* sampleForPreview;
 ParamManagerForTimeline* paramManagerForSamplePreview;
@@ -174,6 +176,7 @@ void init() {
 	new (&reverb) revmodel;
 	new (&reverbCompressor) Compressor;
 	new (&metronome) Metronome;
+	new (&mastercompressor) MasterCompressor;
 	new (&activeVoices) VoiceVector;
 
 	paramManagerForSamplePreview = new ((void*)paramManagerForSamplePreviewMemory) ParamManagerForTimeline();
@@ -716,6 +719,8 @@ startAgain:
 
 	masterVolumeAdjustmentL <<= 2;
 	masterVolumeAdjustmentR <<= 2;
+
+	mastercompressor.render(renderingBuffer, numSamples);
 
 	metronome.render(renderingBuffer, numSamples);
 
