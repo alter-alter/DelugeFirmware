@@ -59,6 +59,10 @@ struct EditPadPress {
 #define MPE_RECORD_LENGTH_FOR_NOTE_EDITING 3
 #define MPE_RECORD_INTERVAL_TIME (44100 >> 2) // 250ms
 
+#define NUDGEMODE_NUDGE 0
+#define NUDGEMODE_QUANTIZE 1
+#define NUDGEMODE_QUANTIZE_ALL 2
+
 class InstrumentClipView final : public ClipView, public InstrumentClipMinder {
 public:
 	InstrumentClipView();
@@ -129,6 +133,9 @@ public:
 	void reportMPEValueForNoteEditing(int whichExpressionDimension, int32_t value);
 	void reportNoteOffForMPEEditing(ModelStackWithNoteRow* modelStack);
 	void dontDeleteNotesOnDepress();
+
+    inline void getRowColour(int y, uint8_t color[3])   {     color[0] =rowColour[y][0];  color[1] =rowColour[y][1];color[2] =rowColour[y][2];  }//
+
 
 #if HAVE_OLED
 	void renderOLED(uint8_t image[][OLED_MAIN_WIDTH_PIXELS]) {
@@ -214,6 +221,11 @@ private:
 	void editNoteRowLength(ModelStackWithNoteRow* modelStack, int offset, int yDisplay);
 	ModelStackWithNoteRow* createNoteRowForYDisplay(ModelStackWithTimelineCounter* modelStack, int yDisplay);
 	ModelStackWithNoteRow* getOrCreateNoteRowForYDisplay(ModelStackWithTimelineCounter* modelStack, int yDisplay);
+
+	void quantizeNotes(int offset);
+	int32_t quantizeAmount;
+	int nudgeMode;
+
 };
 
 extern InstrumentClipView instrumentClipView;

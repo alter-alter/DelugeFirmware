@@ -74,6 +74,9 @@
 #include "uitimermanager.h"
 #include "PatchCableSet.h"
 #include "MIDIDrum.h"
+#include "MasterCompressor.h"
+#include "MultiRange.h"
+#include "AudioFileHolder.h"
 
 #if HAVE_OLED
 #include "oled.h"
@@ -254,10 +257,10 @@ doOther:
 		if (on && currentUIMode == UI_MODE_NONE) {
 			if (inCardRoutine) return ACTION_RESULT_REMIND_ME_OUTSIDE_CARD_ROUTINE;
 
-			if (currentSong->currentClip->output->type == INSTRUMENT_TYPE_KIT) {
+			/*if (currentSong->currentClip->output->type == INSTRUMENT_TYPE_KIT) {
 				IndicatorLEDs::indicateAlertOnLed(kitLedX, kitLedY);
 			}
-			else changeRootUI(&keyboardScreen);
+			else */changeRootUI(&keyboardScreen);//
 		}
 	}
 #endif
@@ -543,7 +546,7 @@ doOther:
 	else if (x == xEncButtonX && y == xEncButtonY) {
 
 		// If user wants to "multiple" Clip contents
-		if (on && Buttons::isShiftButtonPressed()) {
+		if (on && Buttons::isShiftButtonPressed() && !isUIModeActiveExclusively(UI_MODE_NOTES_PRESSED) ) {
 			if (isNoUIModeActive()) {
 				if (inCardRoutine) return ACTION_RESULT_REMIND_ME_OUTSIDE_CARD_ROUTINE;
 
@@ -564,7 +567,16 @@ doOther:
 		else {
 			if (isUIModeActiveExclusively(UI_MODE_NOTES_PRESSED)) {
 				if (on) {
-					nudgeNotes(0);
+					if ( Buttons::isShiftButtonPressed()) {
+						nudgeMode=(nudgeMode+1)%3;
+					}
+					//uiTimerManager.setTimer(TIMER_UI_SPECIFIC, 1000);//xEncButtonX
+					if(nudgeMode==NUDGEMODE_NUDGE){
+						nudgeNotes(0);
+					}else if (nudgeMode==NUDGEMODE_QUANTIZE || nudgeMode==NUDGEMODE_QUANTIZE_ALL ){
+						quantizeNotes(0);
+					}
+
 				}
 				else {
 doCancelPopup:
@@ -1116,6 +1128,70 @@ const uint32_t auditionPadActionUIModes[] = {UI_MODE_AUDITIONING,
                                              0};
 
 int InstrumentClipView::padAction(int x, int y, int velocity) {
+
+		for(int i=0;i<8;i++){
+			if(  (this->auditionPadIsPressed[i] )  && x==5 && y==7 && velocity>0  ){
+
+				if(currentSong->currentClip->output->type != INSTRUMENT_TYPE_KIT)continue;
+				//cancelAllAuditioning();
+				AudioEngine::stopAnyPreviewing();
+
+				Drum* drum=getCurrentClip()->getNoteRowOnScreen(i, currentSong)->drum;
+				if(drum->type != DRUM_TYPE_SOUND)continue;
+				SoundDrum* soundDrum = (SoundDrum*)drum;
+				MultiRange* r=soundDrum ->sources[0].getRange(0);
+				AudioFileHolder* afh =r->getAudioFileHolder();
+
+				static int  MaxFiles=25;
+				String fnArray[MaxFiles];
+				char const* currentPathChars = afh->filePath.get();//a->audioFile->filePath.get();
+				char const* slashAddress = strrchr(currentPathChars, '/');
+				if (slashAddress) {
+					int slashPos = (uint32_t)slashAddress - (uint32_t)currentPathChars;
+					String dir;
+					dir.set(&afh->filePath);
+					dir.shorten(slashPos);
+					FRESULT result = f_opendir(&staticDIR, dir.get());
+					FilePointer thisFilePointer;
+					int numSamples=0;
+
+					if (result != FR_OK) {	numericDriver.displayError(ERROR_SD_CARD);	return false;	}
+					while (true) {
+						result = f_readdir_get_filepointer(&staticDIR, &staticFNO, &thisFilePointer); /* Read a directory item */
+						if (result != FR_OK || staticFNO.fname[0] == 0) break; // Break on error or end of dir
+						if (staticFNO.fname[0] == '.'  || staticFNO.fattrib & AM_DIR ||  !isAudioFilename(staticFNO.fname)  ) continue;               // Ignore dot entry
+						audioFileManager.loadAnyEnqueuedClusters();
+						fnArray[numSamples].set(staticFNO.fname);
+						numSamples++;
+						if(numSamples>=MaxFiles)break;
+					}
+
+					if(numSamples>=2){
+						soundDrum->unassignAllVoices();
+						afh->setAudioFile(NULL);
+						String filePath;//add slash
+						filePath.set(&dir);
+						int dirWithSlashLength = filePath.getLength();
+						if (dirWithSlashLength) {
+							filePath.concatenateAtPos("/", dirWithSlashLength);
+							dirWithSlashLength++;
+						}
+						char const* fn =fnArray[ random(numSamples-1) ].get();
+						filePath.concatenateAtPos(fn, dirWithSlashLength);
+						AudioEngine::stopAnyPreviewing();
+						afh->filePath.set(&filePath);
+						afh->loadFile(false, true, true, 1, 0 , false);
+						soundDrum->name.set(fn);
+
+						((Instrument*)currentSong->currentClip->output)->beenEdited();
+					}
+				}
+			}
+	}
+	for(int i=0;i<8;i++) if(  (this->auditionPadIsPressed[i] )  && x==5 && y==7   ){
+		if(currentSong->currentClip->output->type == INSTRUMENT_TYPE_KIT)numericDriver.displayPopup(HAVE_OLED ? "Randomized" : "RND");
+		return ACTION_RESULT_DEALT_WITH;
+	}
 
 	// Edit pad action...
 	if (x < displayWidth) {
@@ -2796,7 +2872,7 @@ justReRender:
 			if (isUIModeActive(UI_MODE_RECORD_COUNT_IN)) {
 				if (isKit) {
 					if (drum) {
-						drum->recordNoteOnEarly(instrument->defaultVelocity,
+						drum->recordNoteOnEarly( (velocity==1)?  instrument->defaultVelocity : velocity/**/,
 						                        getCurrentClip()->allowNoteTails(modelStackWithNoteRowOnCurrentClip));
 					}
 				}
@@ -2814,12 +2890,13 @@ justReRender:
 
 				// May need to create NoteRow if there wasn't one previously
 				if (!modelStackWithNoteRowOnCurrentClip->getNoteRowAllowNull()) {
-					modelStackWithNoteRowOnCurrentClip =
-					    createNoteRowForYDisplay(modelStackWithTimelineCounter, yDisplay);
+					//if (!drum) {//
+						modelStackWithNoteRowOnCurrentClip =createNoteRowForYDisplay(modelStackWithTimelineCounter, yDisplay);
+					//}
 				}
 
 				if (modelStackWithNoteRowOnCurrentClip->getNoteRowAllowNull()) {
-					getCurrentClip()->recordNoteOn(modelStackWithNoteRowOnCurrentClip, instrument->defaultVelocity);
+					getCurrentClip()->recordNoteOn(modelStackWithNoteRowOnCurrentClip,  (velocity==1)?  instrument->defaultVelocity : velocity/**/ );
 					goto maybeRenderRow;
 				}
 			}
@@ -2860,6 +2937,7 @@ maybeRenderRow:
 		// If note on...
 		if (velocity) {
 			int velocityToSound = ((Instrument*)currentSong->currentClip->output)->defaultVelocity;
+			if(velocity>=2){velocityToSound=velocity;}//
 
 			auditionPadIsPressed[yDisplay] =
 			    velocityToSound; // Yup, need to do this even if we're going to do a "silent" audition, so pad lights up etc.
@@ -3750,7 +3828,12 @@ int InstrumentClipView::horizontalEncoderAction(int offset) {
 			         && isUIModeWithinRange(noteNudgeUIModes)) {
 				if (sdRoutineLock)
 					return ACTION_RESULT_REMIND_ME_OUTSIDE_CARD_ROUTINE; // Just be safe - maybe not necessary
-				nudgeNotes(offset);
+
+				if(nudgeMode==NUDGEMODE_NUDGE){
+					nudgeNotes(offset);
+				}else if (nudgeMode==NUDGEMODE_QUANTIZE || nudgeMode==NUDGEMODE_QUANTIZE_ALL ){
+					quantizeNotes(offset);
+				}
 			}
 		}
 		return ACTION_RESULT_DEALT_WITH;
@@ -3930,6 +4013,261 @@ void InstrumentClipView::editNoteRepeat(int offset) {
 	numericDriver.displayPopup(buffer, 0, true);
 #endif
 }
+
+
+// quantizeNotes
+void InstrumentClipView::quantizeNotes(int offset) {
+
+	shouldIgnoreHorizontalScrollKnobActionIfNotAlsoPressedForThisNotePress = true;
+
+
+
+	// If just popping up number,
+	if (!offset ) {
+		//store totaloffset before quantizing.
+		quantizeAmount=0;
+
+#if HAVE_OLED
+		char buffer[24];
+		if(nudgeMode==NUDGEMODE_QUANTIZE){
+			strcpy(buffer, "QUANTIZE");
+		}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL){
+			strcpy(buffer, "QUANTIZE ALL ROWS");
+		}
+#else
+		char buffer[5];
+		if(nudgeMode==NUDGEMODE_QUANTIZE){
+			strcpy(buffer, "QTZ");
+		}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL){
+			strcpy(buffer, "QTZA");
+		}
+#endif
+
+
+		//intToString(0, buffer + strlen(buffer));
+		char const* message;
+		message = buffer;
+#if HAVE_OLED
+		OLED::popupText(message);
+#else
+		numericDriver.displayPopup(message, 0, false);
+#endif
+
+		return;
+	}
+	int squareSize = getPosFromSquare(1) - getPosFromSquare(0);
+	int halfsquareSize =  (int)(squareSize/2);
+	int quatersquareSize =  (int)(squareSize/4);
+
+
+
+	/////
+	if(quantizeAmount==10 && offset==1)return;
+	if(quantizeAmount==-10 && offset==-1)return;
+	quantizeAmount+=offset;
+	if(quantizeAmount>=10)quantizeAmount=10;
+	if(quantizeAmount<=-10)quantizeAmount=-10;
+
+
+
+#if HAVE_OLED
+	char buffer[24];
+	if(nudgeMode==NUDGEMODE_QUANTIZE && quantizeAmount>=0){
+		strcpy(buffer, "Quantize ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount>=0){
+		strcpy(buffer, "Quantize All ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE  && quantizeAmount<0){
+		strcpy(buffer, "Humanaize ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount<0){
+		strcpy(buffer, "Humanaize All ");
+	}
+	intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
+#else
+	char buffer[5];
+	if(nudgeMode==NUDGEMODE_QUANTIZE && quantizeAmount>=0){
+		strcpy(buffer, "Q ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount>=0){
+		strcpy(buffer, "QA");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE  && quantizeAmount<0){
+		strcpy(buffer, "H ");
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL && quantizeAmount<0){
+		strcpy(buffer, "HA");
+	}
+	if( abs(quantizeAmount)==10 ){intToString(99, buffer + strlen(buffer));}
+	else {intToString( abs(quantizeAmount*10), buffer + strlen(buffer));}
+#endif
+
+	//intToString( abs(quantizeAmount*10), buffer + strlen(buffer));
+	char const* message;
+	message = buffer;
+
+#if HAVE_OLED
+	OLED::popupText(message);
+#else
+	numericDriver.displayPopup(message, 0, false);
+#endif
+	////
+
+
+
+
+
+	char modelStackMemory[MODEL_STACK_MAX_SIZE];
+	ModelStack* modelStack = setupModelStackWithSong(modelStackMemory, currentSong);
+	ModelStackWithTimelineCounter* modelStackWithTimelineCounter = modelStack->addTimelineCounter(modelStack->song->currentClip);
+	InstrumentClip* currentClip = getCurrentClip();
+
+	if ( nudgeMode==NUDGEMODE_QUANTIZE /*currentSong->currentClip->output->type == INSTRUMENT_TYPE_KIT*/) {//kit, one row
+
+
+		//reset
+		Action* lastAction = actionLogger.firstAction[BEFORE];
+		if(lastAction &&  lastAction->type == ACTION_NOTE_NUDGE && lastAction->openForAdditions)actionLogger.undoJustOneConsequencePerNoteRow(modelStack);
+
+
+
+		Action* action = NULL;
+		if (offset) {
+			action = actionLogger.getNewAction(ACTION_NOTE_NUDGE, ACTION_ADDITION_ALLOWED);
+			if (action) action->offset = quantizeAmount;
+		}
+
+		NoteRow* thisNoteRow;
+		int noteRowId;
+		for (int i = 0; i < editPadPressBufferSize; i++) {
+			if (editPadPresses[i].isActive) {
+
+				int noteRowIndex;
+				thisNoteRow = currentClip->getNoteRowOnScreen(editPadPresses[i].yDisplay, currentSong, &noteRowIndex);
+				noteRowId = currentClip->getNoteRowId(thisNoteRow, noteRowIndex);
+
+				ModelStackWithNoteRow* modelStackWithNoteRow =
+				    modelStackWithTimelineCounter->addNoteRow(noteRowId, thisNoteRow);
+
+				int32_t noteRowEffectiveLength = modelStackWithNoteRow->getLoopLength();
+
+
+				if (offset) {//store
+					action->recordNoteArrayChangeDefinitely((InstrumentClip*)modelStackWithNoteRow->getTimelineCounter(),
+							modelStackWithNoteRow->noteRowId, &(thisNoteRow->notes), false);
+				}
+
+				NoteVector tmpNotes; tmpNotes.cloneFrom(&thisNoteRow->notes);//backup
+				for (int j = 0; j < tmpNotes.getNumElements(); j++) {
+
+					Note* note=tmpNotes.getElement(j);
+
+					int32_t destination=(trunc((note->pos-1 + halfsquareSize)/squareSize))* squareSize ;
+					if(quantizeAmount<0){//humanaize
+						int32_t mhAmout= trunc(  random(quatersquareSize)-(quatersquareSize/2.5) );
+						destination=  note->pos + mhAmout;
+					}
+					int32_t distance=destination - note->pos;
+					distance=trunc((distance*abs(quantizeAmount))/10);
+
+					if(distance!=0){
+
+						for(int k=0;k<abs(distance);k++){
+							int32_t nowPos=(note->pos+ ((distance>0)?k:-k)   +noteRowEffectiveLength)%noteRowEffectiveLength;
+							int error=thisNoteRow->nudgeNotesAcrossAllScreens(nowPos, modelStackWithNoteRow,
+																	NULL, MAX_SEQUENCE_LENGTH,  ((distance>0)?1:-1)  );
+							if (error) {numericDriver.displayError(error);return;}
+						}
+
+					}
+
+				}
+
+			}
+		}
+
+	}else if(nudgeMode==NUDGEMODE_QUANTIZE_ALL ){//synth, all row
+
+		//reset
+		Action* lastAction = actionLogger.firstAction[BEFORE];
+		if(lastAction &&  lastAction->type == ACTION_NOTE_NUDGE && lastAction->openForAdditions)actionLogger.undoJustOneConsequencePerNoteRow(modelStack);
+
+
+
+		Action* action = NULL;
+		if (offset) {
+			action = actionLogger.getNewAction(ACTION_NOTE_NUDGE, ACTION_ADDITION_ALLOWED);
+			if (action) action->offset = offset;
+		}
+
+
+		for (int i = 0; i < getCurrentClip()->noteRows.getNumElements(); i++) {
+			NoteRow* thisNoteRow = getCurrentClip()->noteRows.getElement(i);
+
+			int noteRowId;
+			int noteRowIndex;
+			//noteRow = currentClip->getNoteRowOnScreen(editPadPresses[i].yDisplay, currentSong, &noteRowIndex);
+			noteRowId = getCurrentClip()->getNoteRowId(thisNoteRow, i);
+
+			ModelStackWithNoteRow* modelStackWithNoteRow =  modelStackWithTimelineCounter->addNoteRow(noteRowId, thisNoteRow);
+			int32_t noteRowEffectiveLength = modelStackWithNoteRow->getLoopLength();
+
+
+			// If this NoteRow has any notes...
+			if (!thisNoteRow->hasNoNotes()) {
+
+
+				if (offset) {//store
+					action->recordNoteArrayChangeDefinitely((InstrumentClip*)modelStackWithNoteRow->getTimelineCounter(),
+							modelStackWithNoteRow->noteRowId, &(thisNoteRow->notes), false);
+				}
+
+				NoteVector tmpNotes; tmpNotes.cloneFrom(&thisNoteRow->notes);//backup
+				for (int j = 0; j < tmpNotes.getNumElements(); j++) {
+					Note* note=tmpNotes.getElement(j);
+
+					int32_t destination=(trunc((note->pos-1 + halfsquareSize)/squareSize))* squareSize ;
+					if(quantizeAmount<0){//humanaize
+						int32_t mhAmout= trunc(  random(quatersquareSize)-(quatersquareSize/2.5) );
+						destination=  note->pos + mhAmout;
+					}
+					int32_t distance=destination - note->pos;
+					distance=trunc((distance*abs(quantizeAmount))/10);
+
+					if(distance!=0){
+
+						for(int k=0;k<abs(distance);k++){
+							int32_t nowPos=(note->pos+ ((distance>0)?k:-k)   +noteRowEffectiveLength)%noteRowEffectiveLength;
+							int error=thisNoteRow->nudgeNotesAcrossAllScreens(nowPos, modelStackWithNoteRow,
+																	NULL, MAX_SEQUENCE_LENGTH,  ((distance>0)?1:-1)  );
+							if (error) {numericDriver.displayError(error);return;}
+						}
+
+					}
+
+
+				}
+
+			}
+		}//for i
+
+	}//kit/synth
+
+
+
+
+	uiNeedsRendering(this, 0xFFFFFFFF, 0);
+	{
+
+		if (playbackHandler.isEitherClockActive() && modelStackWithTimelineCounter->song->isClipActive(currentClip)) {
+			currentClip->expectEvent();
+			currentClip->reGetParameterAutomation(modelStackWithTimelineCounter);
+		}
+	}
+	return;
+
+}
+
+
+
+
+
+
 
 // Supply offset as 0 to just popup number, not change anything
 void InstrumentClipView::nudgeNotes(int offset) {
@@ -4504,6 +4842,57 @@ void InstrumentClipView::modEncoderAction(int whichModEncoder, int offset) {
 	ModelStack* modelStack = setupModelStackWithSong(modelStackMemory, currentSong);
 
 	Output* output = clip->output;
+
+
+	if(Buttons::isShiftButtonPressed()){
+		int modKnobMode = -1;
+		if (view.activeModControllableModelStack.modControllable) {
+			uint8_t* modKnobModePointer = view.activeModControllableModelStack.modControllable->getModKnobMode();
+			if (modKnobModePointer) modKnobMode = *modKnobModePointer;
+		}
+		if(modKnobMode==4 && whichModEncoder==1){
+			double r =AudioEngine::mastercompressor.compressor.getThresh();
+			r=r-(offset);
+			if(r>=0)r=0;
+			if(r<-69)r=-69;
+			AudioEngine::mastercompressor.compressor.setThresh(r);
+#if HAVE_OLED
+			char buffer[24];
+			strcpy(buffer, "MCOMP TH ");
+			intToString( r, buffer + strlen(buffer));
+			strcpy(buffer + strlen(buffer), " dB");
+			if(r==0)strcpy(buffer, "MCOMP OFF");
+			numericDriver.displayPopup(buffer);
+#else
+			char buffer[5];
+			strcpy(buffer, "C");
+			intToString( r, buffer + strlen(buffer));
+			if(r==0)strcpy(buffer, "OFF");
+			numericDriver.displayPopup(buffer);
+#endif
+		}
+		if(modKnobMode==4 && whichModEncoder==0){
+			double r =AudioEngine::mastercompressor.getMakeup();
+			r=r+(offset*0.1);
+			if(r<0)r=0;
+			if(r>20)r=20;
+			AudioEngine::mastercompressor.setMakeup(r);
+#if HAVE_OLED
+			char buffer[24];
+			strcpy(buffer, "MCOMP GA ");
+			floatToString(r, buffer + strlen(buffer), 1, 1);
+			strcpy(buffer + strlen(buffer), " dB");
+			numericDriver.displayPopup(buffer);
+#else
+			char buffer[5];
+			//strcpy(buffer, "G ");
+			floatToString(r, buffer, 1, 1);
+			numericDriver.displayPopup(buffer);
+#endif
+		}
+
+	}//mastercomp
+
 
 	if (output->type == INSTRUMENT_TYPE_KIT && isUIModeActive(UI_MODE_AUDITIONING)) {
 
