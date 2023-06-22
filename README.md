@@ -38,7 +38,7 @@ https://youtu.be/aL5b1ApofH8
 <img src="https://github.com/alter-alter/DelugeFirmware/assets/135567612/215098a1-c48b-48cb-8373-4d1d513bbcbe" width=180>
 
 ### Drum Randomizer
-While holding down the audition pad(s), pressing the ↓1→6 pad will randomly select a sample from the folder containing each sample.<br>
+While holding down the audition pad(s), pressing the \[RANDOM\] pad will randomly select a sample from the folder containing each sample. <br>
 
 https://youtu.be/gw_8WSeZs8o
 
