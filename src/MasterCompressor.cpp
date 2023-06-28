@@ -23,11 +23,15 @@ MasterCompressor::MasterCompressor() {
     compressor.setSampleRate(44100);
     compressor.initRuntime();
     compressor.setAttack(10);
+    attack=10.0;
     compressor.setRelease(100);
+    release=100.0;
     //compressor.setThresh(0.5f);// dB = 20 * log10(value) , value = 10^(dB/20)
     compressor.setThresh(0.0);//threshold (dB) 0...-69
     compressor.setRatio(1.0 / 4.00);//ratio (compression: < 1 ; expansion: > 1)
+    ratio= 4.00;
     makeup=1.0;//value;
+    gr=0.0;
 }
 
 
@@ -38,6 +42,8 @@ void MasterCompressor::render(StereoSample* buffer, uint16_t numSamples) {
 	StereoSample* bufferEnd = buffer + numSamples;
 	if(compressor.getThresh()<0.0){
 		do {
+			int32_t orgl =thisSample->l;
+			int32_t orgr =thisSample->r;
 			double l= thisSample->l / 2147483648.0; //(thisSample->l < 0)? thisSample->l / 2147483648.0 : thisSample->l / 2147483647.0 ;
 			double r= thisSample->r / 2147483648.0;//(thisSample->r < 0)? thisSample->r / 2147483648.0 : thisSample->r / 2147483647.0 ;
 			compressor.process(l, r);
@@ -45,8 +51,9 @@ void MasterCompressor::render(StereoSample* buffer, uint16_t numSamples) {
 			thisSample->l = l*makeup*2147483647;//l < 0? (int)(l*2147483648) : (int)(l*2147483647);
 			thisSample->r = r*makeup*2147483647;//r < 0? (int)(r*2147483648) : (int)(r*2147483647);
 
-			if(makeup>0){
-
+			if(thisSample == bufferEnd-1){
+				gr= chunkware_simple::lin2dB(thisSample->l/(orgl+0.0) );
+				gr=std::min(gr, chunkware_simple::lin2dB(thisSample->r/(orgr+0.0) ));
 			}
 
 		} while (++thisSample != bufferEnd);

@@ -74,7 +74,6 @@
 #include "uitimermanager.h"
 #include "PatchCableSet.h"
 #include "MIDIDrum.h"
-#include "MasterCompressor.h"
 #include "MultiRange.h"
 #include "AudioFileHolder.h"
 
@@ -4842,56 +4841,6 @@ void InstrumentClipView::modEncoderAction(int whichModEncoder, int offset) {
 	ModelStack* modelStack = setupModelStackWithSong(modelStackMemory, currentSong);
 
 	Output* output = clip->output;
-
-
-	if(Buttons::isShiftButtonPressed()){
-		int modKnobMode = -1;
-		if (view.activeModControllableModelStack.modControllable) {
-			uint8_t* modKnobModePointer = view.activeModControllableModelStack.modControllable->getModKnobMode();
-			if (modKnobModePointer) modKnobMode = *modKnobModePointer;
-		}
-		if(modKnobMode==4 && whichModEncoder==1){
-			double r =AudioEngine::mastercompressor.compressor.getThresh();
-			r=r-(offset);
-			if(r>=0)r=0;
-			if(r<-69)r=-69;
-			AudioEngine::mastercompressor.compressor.setThresh(r);
-#if HAVE_OLED
-			char buffer[24];
-			strcpy(buffer, "MCOMP TH ");
-			intToString( r, buffer + strlen(buffer));
-			strcpy(buffer + strlen(buffer), " dB");
-			if(r==0)strcpy(buffer, "MCOMP OFF");
-			numericDriver.displayPopup(buffer);
-#else
-			char buffer[5];
-			strcpy(buffer, "C");
-			intToString( r, buffer + strlen(buffer));
-			if(r==0)strcpy(buffer, "OFF");
-			numericDriver.displayPopup(buffer);
-#endif
-		}
-		if(modKnobMode==4 && whichModEncoder==0){
-			double r =AudioEngine::mastercompressor.getMakeup();
-			r=r+(offset*0.1);
-			if(r<0)r=0;
-			if(r>20)r=20;
-			AudioEngine::mastercompressor.setMakeup(r);
-#if HAVE_OLED
-			char buffer[24];
-			strcpy(buffer, "MCOMP GA ");
-			floatToString(r, buffer + strlen(buffer), 1, 1);
-			strcpy(buffer + strlen(buffer), " dB");
-			numericDriver.displayPopup(buffer);
-#else
-			char buffer[5];
-			//strcpy(buffer, "G ");
-			floatToString(r, buffer, 1, 1);
-			numericDriver.displayPopup(buffer);
-#endif
-		}
-
-	}//mastercomp
 
 
 	if (output->type == INSTRUMENT_TYPE_KIT && isUIModeActive(UI_MODE_AUDITIONING)) {

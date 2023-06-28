@@ -21,6 +21,7 @@
 #include "r_typedefs.h"
 #include "simpleSource/SimpleComp.h"
 
+
 class StereoSample;
 
 class MasterCompressor {
@@ -28,8 +29,13 @@ public:
 	MasterCompressor();
 	void render(StereoSample* buffer, uint16_t numSamples);
 	double makeup;
+	double attack;
+	double release;
+	double ratio;
+	double gr;
 	inline void setMakeup(double dB){ makeup=   pow(10.0,(dB/20.0));  if(makeup>20.0)makeup=20.0; if(makeup<0.0)makeup=0.0; }
-	inline double getMakeup(){ return   20.0 * log10(makeup) ;} ;
+	inline double getMakeup(){ return   20.0 * log10(makeup) ;}
+
 
 	chunkware_simple::SimpleComp compressor;
 
