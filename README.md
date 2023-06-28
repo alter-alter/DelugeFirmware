@@ -31,11 +31,10 @@ https://youtu.be/iAL447a1jD4
 
 
 ### Master Compressor
-In the Clip or Song view, select the SIDECHAIN modulation button, hold down the Shift, and adjust the upper(Threshold)/lower(Makeup Gain) gold knobs. Due to compatibility issues with the official firmware, the compressor settings are not saved.<br>
+In the Song view, select Affect Entire and SIDECHAIN modulation button, hold down the Shift, and adjust the upper(Threshold)/lower(Makeup Gain) gold knobs. Push the upper gold knob to switch to the next setting. Due to compatibility issues with the official firmware, the compressor settings are not saved.<br>
 
-https://youtu.be/aL5b1ApofH8
+https://youtu.be/goFTLWd9nHk
 
-<img src="https://github.com/alter-alter/DelugeFirmware/assets/135567612/215098a1-c48b-48cb-8373-4d1d513bbcbe" width=180>
 
 ### Drum Randomizer
 While holding down the audition pad(s), pressing the \[RANDOM\] pad will randomly select a sample from the folder containing each sample. <br>
