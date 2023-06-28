@@ -134,6 +134,34 @@ void SessionView::focusRegained() {
 
 int SessionView::buttonAction(int x, int y, bool on, bool inCardRoutine) {
 
+
+
+
+	if(Buttons::isShiftButtonPressed()){
+		int modKnobMode = -1;
+		if (view.activeModControllableModelStack.modControllable) {
+			uint8_t* modKnobModePointer = view.activeModControllableModelStack.modControllable->getModKnobMode();
+			if (modKnobModePointer) modKnobMode = *modKnobModePointer;
+		}
+		if(modKnobMode==4 &&  x == modEncoder1ButtonX && y == modEncoder1ButtonY  && on   ){
+			masterCompEditMode++;
+			masterCompEditMode=masterCompEditMode%3;//th,make, at,re, ra
+			if(masterCompEditMode==0){
+				numericDriver.displayPopup("THR");
+			}else if(masterCompEditMode==1){
+				numericDriver.displayPopup("ATT");
+			}else if(masterCompEditMode==2){
+				numericDriver.displayPopup("RAT");
+			}
+			//modEncoderAction(1, 0);
+			return ACTION_RESULT_DEALT_WITH;
+		}
+	}//mastercomp
+
+
+
+
+
 	int newInstrumentType;
 
 	// Clip-view button
@@ -1569,6 +1597,23 @@ void SessionView::graphicsRoutine() {
 	bool anyLinearRecordingOnThisScreen = false;
 	bool anyLinearRecordingOnNextScreen = false;
 
+
+
+	int modKnobMode = -1;
+	if (view.activeModControllableModelStack.modControllable) {
+		uint8_t* modKnobModePointer = view.activeModControllableModelStack.modControllable->getModKnobMode();
+		if (modKnobModePointer) modKnobMode = *modKnobModePointer;
+	}
+	if(modKnobMode==4 && abs(AudioEngine::mastercompressor.compressor.getThresh())>0.001  && currentUIMode != UI_MODE_CLIP_PRESSED_IN_SONG_VIEW   ){//upper
+		double gr=AudioEngine::mastercompressor.gr;
+		if(gr>=0)gr=0;
+		if(gr<=-12)gr=-12.0;
+		gr=abs(gr);
+		IndicatorLEDs::setKnobIndicatorLevel(1, int(gr/12.0*128)  );
+	}
+
+
+
 	for (int yDisplay = 0; yDisplay < displayHeight; yDisplay++) {
 		int newTickSquare;
 
@@ -2119,47 +2164,136 @@ void SessionView::modEncoderAction(int whichModEncoder, int offset) {
 			uint8_t* modKnobModePointer = view.activeModControllableModelStack.modControllable->getModKnobMode();
 			if (modKnobModePointer) modKnobMode = *modKnobModePointer;
 		}
-		if(modKnobMode==4 && whichModEncoder==1){
-			double r =AudioEngine::mastercompressor.compressor.getThresh();
-			r=r-(offset);
-			if(r>=0)r=0;
-			if(r<-69)r=-69;
-			AudioEngine::mastercompressor.compressor.setThresh(r);
+
+		if(modKnobMode==4 && whichModEncoder==1){//upper
+
+			if(masterCompEditMode==0){//th
+				double r =AudioEngine::mastercompressor.compressor.getThresh();
+				r=r-(offset*.2);
+				if(r>=0)r=0;
+				if(r<-69)r=-69;
+				AudioEngine::mastercompressor.compressor.setThresh(r);
+
 #if HAVE_OLED
-			char buffer[24];
-			strcpy(buffer, "MCOMP TH ");
-			intToString( r, buffer + strlen(buffer));
-			strcpy(buffer + strlen(buffer), " dB");
-			if(r==0)strcpy(buffer, "MCOMP OFF");
-			numericDriver.displayPopup(buffer);
+				char buffer[24];
+				strcpy(buffer, "MCOMP THR ");
+				floatToString(r, buffer + strlen(buffer), 1, 1);
+				strcpy(buffer + strlen(buffer), " dB");
+				if( abs(r)<0.01 )strcpy(buffer, "MCOMP OFF");
+				numericDriver.displayPopup(buffer);
 #else
-			char buffer[5];
-			strcpy(buffer, "C");
-			intToString( r, buffer + strlen(buffer));
-			if(r==0)strcpy(buffer, "OFF");
-			numericDriver.displayPopup(buffer);
+				char buffer[6];
+				strcpy(buffer, "");
+				floatToString(r, buffer + strlen(buffer), 1, 1);
+				if( abs(r)<0.01)strcpy(buffer, "OFF");
+				numericDriver.displayPopup(buffer);
 #endif
-		}
-		if(modKnobMode==4 && whichModEncoder==0){
-			double r =AudioEngine::mastercompressor.getMakeup();
-			r=r+(offset*0.1);
-			if(r<0)r=0;
-			if(r>20)r=20;
-			AudioEngine::mastercompressor.setMakeup(r);
+
+			}else if(masterCompEditMode==1){//atk
+				double atk =AudioEngine::mastercompressor.compressor.getAttack();//attack;
+				atk=atk+offset*0.1;
+				if(atk<=0.1)atk=0.1;
+				if(atk>=30.0)atk=30.0;
+				AudioEngine::mastercompressor.compressor.setAttack(atk);
 #if HAVE_OLED
-			char buffer[24];
-			strcpy(buffer, "MCOMP GA ");
-			floatToString(r, buffer + strlen(buffer), 1, 1);
-			strcpy(buffer + strlen(buffer), " dB");
-			numericDriver.displayPopup(buffer);
+				char buffer[24];
+				strcpy(buffer, "MCOMP ATK ");
+				floatToString(atk, buffer + strlen(buffer), 1, 1);
+				strcpy(buffer + strlen(buffer), " ms");
+				numericDriver.displayPopup(buffer);
 #else
-			char buffer[5];
-			//strcpy(buffer, "G ");
-			floatToString(r, buffer, 1, 1);
-			numericDriver.displayPopup(buffer);
+				char buffer[5];
+				strcpy(buffer, "");
+				floatToString(atk, buffer + strlen(buffer), 1, 1);
+				numericDriver.displayPopup(buffer);
 #endif
+
+			}else if(masterCompEditMode==2){//ratio
+				double r =AudioEngine::mastercompressor.ratio;
+				r=r+offset*1;
+				if(r<=2.0)r=2.0;
+				if(r>=10.0)r=10.0;
+				AudioEngine::mastercompressor.compressor.setRatio(1.0 / r);
+				AudioEngine::mastercompressor.ratio=r;
+
+#if HAVE_OLED
+				char buffer[24];
+				strcpy(buffer, "MCOMP RATIO ");
+				floatToString(r, buffer + strlen(buffer), 1, 1);
+				numericDriver.displayPopup(buffer);
+#else
+				char buffer[5];
+				strcpy(buffer, "");
+				floatToString(r, buffer + strlen(buffer), 1, 1);
+				numericDriver.displayPopup(buffer);
+#endif
+			}
 		}
 
+
+
+		if(modKnobMode==4 && whichModEncoder==0){//lower
+
+			if(masterCompEditMode==0){//make
+				double r =AudioEngine::mastercompressor.getMakeup();
+				r=r+(offset*0.1);
+				if(r<0)r=0;
+				if(r>20)r=20;
+				AudioEngine::mastercompressor.setMakeup(r);
+#if HAVE_OLED
+				char buffer[24];
+				strcpy(buffer, "MCOMP GAIN ");
+				floatToString(r, buffer + strlen(buffer), 1, 1);
+				strcpy(buffer + strlen(buffer), " dB");
+				numericDriver.displayPopup(buffer);
+#else
+				char buffer[6];
+				strcpy(buffer, "");
+				floatToString(r, buffer + strlen(buffer), 1, 1);
+				numericDriver.displayPopup(buffer);
+
+#endif
+
+
+			}else if(masterCompEditMode==1){//rel
+				double rel =AudioEngine::mastercompressor.compressor.getRelease();//release;
+				rel=rel+offset*100.0;
+				if(rel<=100)rel=100.0;
+				if(rel>=1200.0)rel=1200.0;
+				AudioEngine::mastercompressor.compressor.setRelease(rel);
+#if HAVE_OLED
+				char buffer[24];
+				strcpy(buffer, "MCOMP REL ");
+				floatToString(rel, buffer + strlen(buffer), 1, 1);
+				strcpy(buffer + strlen(buffer), " ms");
+				numericDriver.displayPopup(buffer);
+#else
+				char buffer[6];
+				strcpy(buffer, "");
+				//strcpy(buffer, "R");
+				intToString(int(rel), buffer + strlen(buffer));
+				numericDriver.displayPopup(buffer);
+#endif
+			}else if(masterCompEditMode==2){//wet
+				double wet =AudioEngine::mastercompressor.wet;
+				wet+=offset*0.01;
+				if(wet<=0.0)wet=0.0;
+				if(wet>=1.0)wet=1.0;
+				AudioEngine::mastercompressor.wet=wet;
+#if HAVE_OLED
+				char buffer[24];
+				strcpy(buffer, "MCOMP WET ");
+				intToString(int(wet*100), buffer + strlen(buffer));
+				strcpy(buffer + strlen(buffer), "%");
+				numericDriver.displayPopup(buffer);
+#else
+				char buffer[6];
+				strcpy(buffer, "");
+				intToString(int(wet*100), buffer + strlen(buffer));
+				numericDriver.displayPopup(buffer);
+#endif
+			}
+		}
 	}//mastercomp
 
 
