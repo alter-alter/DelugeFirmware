@@ -1129,7 +1129,7 @@ const uint32_t auditionPadActionUIModes[] = {UI_MODE_AUDITIONING,
 int InstrumentClipView::padAction(int x, int y, int velocity) {
 
 		for(int i=0;i<8;i++){
-			if( getCurrentUI() == this && (this->auditionPadIsPressed[i] )  && ((x==5 && y==7)||(x==15 && y==2)) && velocity>0  ){
+			if( getCurrentUI() == this && (this->auditionPadIsPressed[i] )  && (x==15 && y==2) && velocity>0  ){
 
 				if(currentSong->currentClip->output->type != INSTRUMENT_TYPE_KIT)continue;
 				//cancelAllAuditioning();
@@ -1187,7 +1187,7 @@ int InstrumentClipView::padAction(int x, int y, int velocity) {
 				}
 			}
 	}
-	for(int i=0;i<8;i++) if(  getCurrentUI() == this &&  (this->auditionPadIsPressed[i] )  && ((x==5 && y==7)||(x==15 && y==2))   ){
+	for(int i=0;i<8;i++) if(  getCurrentUI() == this &&  (this->auditionPadIsPressed[i] )  && (x==15 && y==2)  && velocity>0  ){
 		if(currentSong->currentClip->output->type == INSTRUMENT_TYPE_KIT)numericDriver.displayPopup(HAVE_OLED ? "Randomized" : "RND");
 		return ACTION_RESULT_DEALT_WITH;
 	}
