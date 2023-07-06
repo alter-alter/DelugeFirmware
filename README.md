@@ -29,7 +29,7 @@ In the Clip view, while holding down the pad(s) that contain a note, turning the
 
 While holding down the Note pad, pressing and turning the Tempo knob applies quantize/humanize to all rows.
 
-\*This feature can be turned On/Off in the community settings menu.
+\*This feature can be turned On/Off in the runtime feature setting. (Runtime Feature Setting is available in the Shift+Select knob menu.)
 
 https://youtu.be/iAL447a1jD4
 
@@ -37,7 +37,7 @@ https://youtu.be/iAL447a1jD4
 ### Master Compressor
 In the Song view, select Affect Entire and SIDECHAIN modulation button, and adjust the upper gold knob. Push the upper gold knob to switch to the next setting (Threshold (dB), Makeup Gain (dB), Attack (ms), Release (ms), Ratio, MIX). The LEDs next to the knob act as a gain reduction meter.<br>
 
-\*This feature can be turned On/Off in the community settings menu.
+\*This feature can be turned On/Off in the runtime feature setting.
 
 
 https://youtu.be/goFTLWd9nHk
@@ -48,7 +48,7 @@ https://youtu.be/goFTLWd9nHk
 ### Drum Randomizer
 While holding down the audition pad(s), pressing the \[RANDOM\] (→16↓6) pad will randomly select a sample from the folder containing each sample. <br>
 
-\*This feature can be turned On/Off in the community settings menu.
+\*This feature can be turned On/Off in the runtime feature setting.
 
 https://youtu.be/gw_8WSeZs8o
 
