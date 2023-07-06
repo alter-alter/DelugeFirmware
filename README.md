@@ -25,19 +25,30 @@ https://youtu.be/bx8krmVMenw
 
 
 ### Quantize feature
-In the Clip view, press the Pad + Shift + ◄► Knob combination to switch between the NUDGE, QUANTIZE, and QUANTIZE ALL ROWS modes. While pressing the pad, turn the knob to the right to apply quantize, and to the left to apply humanize.<br>
+In the Clip view, while holding down the pad(s) that contain a note, turning the Tempo knob to the right applies quantize, and turning it to the left applies humanize.<br>
+
+While holding down the Note pad, pressing and turning the Tempo knob applies quantize/humanize to all rows.
+
+\*This feature can be turned On/Off in the community settings menu.
 
 https://youtu.be/iAL447a1jD4
 
 
 ### Master Compressor
-In the Song view, select Affect Entire and SIDECHAIN modulation button, hold down the Shift, and adjust the upper(Threshold)/lower(Makeup Gain) gold knobs. Push the upper gold knob to switch to the next setting. Due to compatibility issues with the official firmware, the compressor settings are not saved.<br>
+In the Song view, select Affect Entire and SIDECHAIN modulation button, and adjust the upper gold knob. Push the upper gold knob to switch to the next setting (Threshold (dB), Makeup Gain (dB), Attack (ms), Release (ms), Ratio, MIX). The LEDs next to the knob act as a gain reduction meter.<br>
+
+\*This feature can be turned On/Off in the community settings menu.
+
 
 https://youtu.be/goFTLWd9nHk
 
+<img src="https://github.com/alter-alter/DelugeFirmware/assets/135567612/9b1188d1-bc1b-4cc2-a1b4-ddd89fa8e4b9" width=300>
+
 
 ### Drum Randomizer
-While holding down the audition pad(s), pressing the \[RANDOM\] pad will randomly select a sample from the folder containing each sample. <br>
+While holding down the audition pad(s), pressing the \[RANDOM\] (→16↓6) pad will randomly select a sample from the folder containing each sample. <br>
+
+\*This feature can be turned On/Off in the community settings menu.
 
 https://youtu.be/gw_8WSeZs8o
 
@@ -47,6 +58,9 @@ Stereo Chorus has been added to the MOD FX. The recommended settings are OFFSET=
 
 https://youtu.be/8Y1cg9wWfz0
 
+<br><br>
 
-
+# Features by community developers
+For other features developed by the community developers, please refer to this link.
+https://github.com/SynthstromAudible/DelugeFirmware/blob/community/CommunityFeatures.md
 
