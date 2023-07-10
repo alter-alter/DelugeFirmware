@@ -22,7 +22,7 @@
 ### Keyboad Screen on the KIT mode
 Press KIT button to select a kit. Then press the Keyboard button. You can input velocities from 7 to 127 using the 4x4 pads.<br>
 
-https://youtu.be/bx8krmVMenw
+https://youtu.be/zzeIdRB9PK8
 
 
 ### Quantize feature
@@ -32,7 +32,7 @@ While holding down the Note pad, pressing and turning the Tempo knob applies qua
 
 \*This feature can be turned On/Off in the runtime feature setting. (Runtime Feature Setting is available in the Shift+Select knob menu.)
 
-https://youtu.be/iAL447a1jD4
+https://youtu.be/zzeIdRB9PK8?t=16
 
 
 ### Master Compressor
@@ -42,8 +42,8 @@ You can also use Shift + \[SIDECHAIN: →11↓8 to →11↓3\] pads to select pa
 
 \*This feature can be turned On/Off in the runtime feature setting.
 
+https://youtu.be/zzeIdRB9PK8?t=70
 
-https://youtu.be/goFTLWd9nHk
 
 <img src="https://github.com/alter-alter/DelugeFirmware/assets/135567612/9b1188d1-bc1b-4cc2-a1b4-ddd89fa8e4b9" width=300>
 
@@ -53,7 +53,7 @@ While holding down the audition pad(s), pressing the \[RANDOM: →16↓6\] pad w
 
 \*This feature can be turned On/Off in the runtime feature setting.
 
-https://youtu.be/gw_8WSeZs8o
+https://youtu.be/zzeIdRB9PK8?t=42
 
 
 ### Stereo Chorus
