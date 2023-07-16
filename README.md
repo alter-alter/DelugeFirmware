@@ -61,6 +61,16 @@ Stereo Chorus has been added to the MOD FX. The recommended settings are OFFSET=
 
 https://youtu.be/8Y1cg9wWfz0
 
+
+
+### Manual slicing / Lazy chop
+In the Slicer view, press the ◀&#xFE0E;▶&#xFE0E; knob. When you press the green pad in the bottom left, it starts playing the first slice, and pressing an empty pad creates a new slice. Turning the Select knob to the left or pressing the Pad + DELETE button allows you to delete a slice.
+
+Turning the ◀&#xFE0E;▶&#xFE0E; knob allows you to adjust the start point of the slice. Additionally, turning the ▼&#xFE0E;▲&#xFE0E; knob transposes the slice.
+
+https://youtu.be/w_1FBTHhPNs
+
+
 <br><br>
 
 # Features by community developers
