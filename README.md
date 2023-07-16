@@ -69,6 +69,8 @@ In the Slicer view, press the ◀&#xFE0E;▶&#xFE0E; knob. When you press the gr
 
 Turning the ◀&#xFE0E;▶&#xFE0E; knob allows you to adjust the start point of the slice. Additionally, turning the ▼&#xFE0E;▲&#xFE0E; knob transposes the slice.
 
+Pressing the Select knob finalizes the slicing process.
+
 https://youtu.be/w_1FBTHhPNs
 
 
