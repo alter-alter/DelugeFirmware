@@ -74,6 +74,20 @@ Pressing the Select knob finalizes the slicing process.
 https://youtu.be/w_1FBTHhPNs
 
 
+### Grain FX
+Grain FX has been added to the MOD FX.<br>
+
+Parameters:<br>
+Mod Depth: Controls Grain Volume / Dry Wet Mix<br>
+Mod Offset: Adjusts Grain Size<br>
+Mod Rate: Sets Grain Rate<br>
+Mod Feedback: Selects Grain Type<br>
+
+Note:<br>
+This effect is somewhat resource-intensive, so **please use only one instance per song.**<br>
+https://youtu.be/9W70SZYMKXo
+
+
 <br><br>
 
 # Features by community developers
