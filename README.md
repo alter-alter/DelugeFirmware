@@ -79,9 +79,16 @@ Grain FX has been added to the MOD FX.<br>
 
 Parameters:<br>
 Mod Depth: Controls Grain Volume / Dry Wet Mix<br>
-Mod Offset: Adjusts Grain Size<br>
-Mod Rate: Sets Grain Rate<br>
+Mod Offset: Adjusts Grain Size (10ms - 800ms)<br>
+Mod Rate: Sets Grain Rate (0.5hz - 180hz)<br>
 Mod Feedback: Selects Grain Type<br>
+
+Grain Type (Presets):<br>
+Preset 1: Unison and +1 Octave (Reverse)<br>
+Preset 2: Unison and -1 Octave<br>
+Preset 3: Unison and +1 Octave (Defalut)<br>
+Preset 4: 5th and +1 Octave<br>
+Preset 5: Unison and +1/-1 Octave (Tempo Sync)<br>
 
 Note:<br>
 This effect is somewhat resource-intensive, so **please use only one instance per song.**<br>
