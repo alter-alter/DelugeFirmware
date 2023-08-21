@@ -91,7 +91,7 @@ Preset 4: 5th and +1 Octave<br>
 Preset 5: Unison and +1/-1 Octave (Tempo Sync)<br>
 
 Note:<br>
-This effect is somewhat resource-intensive, so **please use only one instance per song.**<br>
+This effect is somewhat resource-intensive, so <ins>**please use only one instance per song.**</ins><br>
 https://youtu.be/9W70SZYMKXo
 
 
