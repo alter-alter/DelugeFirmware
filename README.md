@@ -101,5 +101,5 @@ https://youtu.be/9W70SZYMKXo
 The features mentioned above have been merged into the official community repository, while also including features from the community repository in my firmware.
 
 For other features developed by the community developers, please refer to this link.
-https://github.com/SynthstromAudible/DelugeFirmware/blob/community/CommunityFeatures.md
+https://github.com/SynthstromAudible/DelugeFirmware/blob/community/docs/community_features.md
 
