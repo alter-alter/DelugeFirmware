@@ -13,7 +13,7 @@
 <br><br>
 
 # How to install
-1. Download the firmware from <a href="https://github.com/alter-alter/DelugeFirmware/releases">here</a>.
+1. Download the firmware from <a href="https://synthstromaudible.github.io/DelugeFirmware/">here</a>.
 2. Save the downloaded firmware file ("xxxx.bin") to an SD card.
 3. Press and hold the Shift button, then turn on the Deluge.
 
